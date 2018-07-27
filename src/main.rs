@@ -1,5 +1,6 @@
 extern crate hyper;
 extern crate futures;
+extern crate cidr;
 
 #[macro_use]
 extern crate serde_derive;

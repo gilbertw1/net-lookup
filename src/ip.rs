@@ -5,6 +5,7 @@ use std::collections::Bound::{Included, Unbounded};
 use std::net::IpAddr;
 
 use asn::{AsnDatabase, AutonomousSystemNumber};
+use cidr::AnyIpCidr;
 
 pub type IpAsnDatabase = BTreeMap<IpAddr,IpBlock>;
 
@@ -17,10 +18,13 @@ pub fn load_ip_asn_file(file: String, asn_map: &AsnDatabase) -> Result<IpAsnData
     let file = File::open(file)?;
     let mut ip_map = BTreeMap::new();
 
-    for line in BufReader::new(file).lines() {
-        if line.is_ok() {
-            let ip_block = parse_ip_block(line.unwrap(), asn_map);
-            ip_map.insert(ip_block.start, ip_block);
+    for line_res in BufReader::new(file).lines() {
+        if line_res.is_ok() {
+            let line = line_res.unwrap();
+            if !line.starts_with(';') {
+                let ip_block = parse_ip_block(line, asn_map);
+                ip_map.insert(ip_block.start, ip_block);
+            }
         } else {
             println!("[IP] skipping non utf8");
         }
@@ -30,12 +34,21 @@ pub fn load_ip_asn_file(file: String, asn_map: &AsnDatabase) -> Result<IpAsnData
 
 fn parse_ip_block(line: String, asn_map: &AsnDatabase) -> IpBlock {
     let split: Vec<&str> = line.split('\t').collect();
+    let (start, end) = get_cidr_start_end(split[0]);
 
     IpBlock {
-        start: split[0].parse::<IpAddr>().unwrap(),
-        end: split[1].parse::<IpAddr>().unwrap(),
-        asn: asn_map.get(&split[2].parse::<u32>().unwrap()).map(|r| r.clone()),
+        start: start,
+        end: end,
+        asn: asn_map.get(&split[1].parse::<u32>().unwrap()).map(|r| r.clone()),
     }
+}
+
+fn get_cidr_start_end(cidr: &str) -> (IpAddr, IpAddr) {
+    let split: Vec<&str> = cidr.split('/').collect();
+    let addr = split[0].parse::<IpAddr>().unwrap();
+    let len = split[1].parse::<u8>().unwrap();
+    let cidr = AnyIpCidr::new(addr, len).unwrap();
+    (cidr.first_address().unwrap(), cidr.last_address().unwrap())
 }
 
 

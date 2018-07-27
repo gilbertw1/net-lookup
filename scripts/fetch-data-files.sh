@@ -7,6 +7,7 @@ curl 'https://ftp.ripe.net/ripe/asnames/asn.txt' -o data/asn-unclean.txt
 iconv -f utf-8 -t utf-8 -c data/asn-unclean.txt > data/asn.txt
 rm data/asn-unclean.txt
 
-# Download ip2asn data
-curl 'https://iptoasn.com/data/ip2asn-combined.tsv.gz' -o data/ip2asn-combined.tsv.gz
-gunzip data/ip2asn-combined.tsv.gz
+# Create ip2asn data
+pyasn_util_download.py -46
+pyasn_util_convert.py --single *.bz2 data/ip2asn.dat
+rm *.bz2
