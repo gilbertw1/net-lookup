@@ -1,5 +1,5 @@
 [package]
-name = "pry-rs"
+name = "ip-asn-lookup-service"
 version = "0.1.0"
 authors = ["Bryan Gilbert <gilbertw1@gmail.com>"]
 
