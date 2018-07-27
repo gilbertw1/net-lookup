@@ -18,7 +18,7 @@ mod service;
 use service::LookupService;
 
 fn main() {
-    let mut args: Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args().collect();
 
     println!("loading asn database");
     let asn_map = asn::load_asn_file(args[1].clone()).unwrap();
