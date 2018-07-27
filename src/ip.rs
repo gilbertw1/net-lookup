@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{BufRead, BufReader, Result};
 use std::collections::Bound::{Included, Unbounded};
 use std::net::IpAddr;
+use std::sync::Arc;
 
 use asn::{AsnDatabase, AutonomousSystemNumber};
 use cidr::AnyIpCidr;
@@ -56,5 +57,5 @@ fn get_cidr_start_end(cidr: &str) -> (IpAddr, IpAddr) {
 pub struct IpBlock {
     start: IpAddr,
     end: IpAddr,
-    asn: Option<AutonomousSystemNumber>,
+    asn: Option<Arc<AutonomousSystemNumber>>,
 }

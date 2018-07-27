@@ -1,8 +1,9 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader, Result};
 use std::collections::HashMap;
+use std::sync::Arc;
 
-pub type AsnDatabase = HashMap<u32, AutonomousSystemNumber>;
+pub type AsnDatabase = HashMap<u32, Arc<AutonomousSystemNumber>>;
 
 pub fn load_asn_file(file: String) -> Result<AsnDatabase> {
     let file = File::open(file)?;
@@ -11,7 +12,7 @@ pub fn load_asn_file(file: String) -> Result<AsnDatabase> {
     for line in BufReader::new(file).lines() {
         if line.is_ok() {
             let asn = parse_autonomous_system_number(line.unwrap());
-            asn_map.insert(asn.id, asn);
+            asn_map.insert(asn.id, Arc::new(asn));
         } else {
             println!("[ASN] skipping non utf8");
         }
