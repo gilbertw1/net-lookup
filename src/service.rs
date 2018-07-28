@@ -1,6 +1,5 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::net::IpAddr;
-use std::thread;
 
 use std::time::Instant;
 
@@ -18,9 +17,9 @@ use ip;
 use ip::IpAsnDatabase;
 use asn::AutonomousSystemNumber;
 use maxmind;
-use dns;
+use dns::DnsLookupHandle;
 
-pub struct LookupService { pub database: Arc<IpAsnDatabase> }
+pub struct LookupService { pub database: Arc<IpAsnDatabase>, pub dns_lookup_handle: Arc<Mutex<DnsLookupHandle>> }
 
 impl NewService for LookupService {
     type ReqBody = Body;
@@ -31,7 +30,7 @@ impl NewService for LookupService {
     type InitError = hyper::Error;
 
     fn new_service(&self) -> Self::Future {
-        Box::new(futures::future::ok(Self { database: self.database.clone() }))
+        Box::new(futures::future::ok(Self { database: self.database.clone(), dns_lookup_handle: self.dns_lookup_handle.clone() }))
     }
 }
 
@@ -52,9 +51,7 @@ impl Service for LookupService {
                     let ip = ip_result.unwrap();
                     let asn_lookup_result = ip::query_database(&self.database, ip);
                     let city_lookup_result = maxmind::lookup_city(ip);
-                    let reverse_dns_result = thread::spawn(move || {
-                         dns::reverse_dns_lookup(ip)
-                    }).join().unwrap();
+                    let reverse_dns_result = self.dns_lookup_handle.lock().unwrap().reverse_dns_lookup(ip);
                     let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()), geo: city_lookup_result, reverse_dns: reverse_dns_result };
                     *response.body_mut() = Body::from(serde_json::to_string(&lookup_response).unwrap());
                 } else {
@@ -78,7 +75,7 @@ impl LookupService {
         println!("Starting Lookup Service\n");
         let address = "127.0.0.1:8080".parse().unwrap();
         let server = Server::bind(&address)
-            .serve(LookupService { database: self.database.clone() })
+            .serve(LookupService { database: self.database.clone(), dns_lookup_handle: self.dns_lookup_handle.clone() })
             .map_err(|e| eprintln!("server error: {}", e));
         println!("Running Lookup Service at {}", address);
         hyper::rt::run(server);
@@ -89,5 +86,5 @@ impl LookupService {
 struct LookupResponse {
     asn: Option<Arc<AutonomousSystemNumber>>,
     geo: Option<City>,
-    reverse_dns: Vec<String>,
+    reverse_dns: Option<Vec<String>>,
 }
