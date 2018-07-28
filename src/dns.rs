@@ -9,10 +9,12 @@ use tokio_core::reactor::Core;
 pub fn start_dns_lookup_loop() -> DnsLookupHandle {
     let (sender, receiver) = channel();
     thread::spawn(move || {
+        let mut core = Core::new().unwrap();
+        let resolv = Resolver::new(&core.handle());
         for request in receiver {
             match request {
                 DnsLookupRequest::ReverseDnsLookupRequest { ip, channel } => {
-                    let names = reverse_dns_lookup(ip);
+                    let names = reverse_dns_lookup(&mut core, resolv.clone(), ip);
                     let result = channel.send(ReverseDnsLookupResponse { names: names });
                     if result.is_err() {
                         println!("Error looking up reverse dns: {:?}", result);
@@ -24,9 +26,7 @@ pub fn start_dns_lookup_loop() -> DnsLookupHandle {
     DnsLookupHandle { sender: sender }
 }
 
-fn reverse_dns_lookup(ip: IpAddr) -> Vec<String> {
-    let mut core = Core::new().unwrap();
-    let resolv = Resolver::new(&core.handle());
+fn reverse_dns_lookup(core: &mut Core, resolv: Resolver, ip: IpAddr) -> Vec<String> {
     let addrs = lookup_addr(resolv, ip);
     let response = core.run(addrs).unwrap();
     response.iter().map(|n| n.to_string().trim_right_matches(".").to_owned()).collect::<Vec<String>>()
