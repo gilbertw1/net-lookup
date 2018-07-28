@@ -1,5 +1,8 @@
 use std::sync::Arc;
 use std::net::IpAddr;
+use std::thread;
+
+use std::time::Instant;
 
 use futures::future;
 use futures;
@@ -15,6 +18,7 @@ use ip;
 use ip::IpAsnDatabase;
 use asn::AutonomousSystemNumber;
 use maxmind;
+use dns;
 
 pub struct LookupService { pub database: Arc<IpAsnDatabase> }
 
@@ -40,6 +44,7 @@ impl Service for LookupService {
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         let mut response = Response::new(Body::empty());
 
+        let start = Instant::now();
         match (req.method(), req.uri().path()) {
             (&Method::GET, path) => {
                 let ip_result = path.trim_left_matches('/').parse::<IpAddr>();
@@ -47,7 +52,10 @@ impl Service for LookupService {
                     let ip = ip_result.unwrap();
                     let asn_lookup_result = ip::query_database(&self.database, ip);
                     let city_lookup_result = maxmind::lookup_city(ip);
-                    let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()), geo: city_lookup_result };
+                    let reverse_dns_result = thread::spawn(move || {
+                         dns::reverse_dns_lookup(ip)
+                    }).join().unwrap();
+                    let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()), geo: city_lookup_result, reverse_dns: reverse_dns_result };
                     *response.body_mut() = Body::from(serde_json::to_string(&lookup_response).unwrap());
                 } else {
                     *response.body_mut() = Body::from("Invalid IP Address.");
@@ -59,6 +67,8 @@ impl Service for LookupService {
             },
         };
 
+        let duration = Instant::now() - start;
+        println!("duration: {:?}", duration);
         Box::new(future::ok(response))
     }
 }
@@ -79,4 +89,5 @@ impl LookupService {
 struct LookupResponse {
     asn: Option<Arc<AutonomousSystemNumber>>,
     geo: Option<City>,
+    reverse_dns: Vec<String>,
 }

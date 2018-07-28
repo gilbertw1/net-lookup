@@ -12,3 +12,5 @@ serde_json = "1.0.24"
 cidr = "0.0.4"
 maxminddb = { git = "https://github.com/gilbertw1/maxminddb-rust" }
 lazy_static = "1.0.2"
+domain = "0.2"
+tokio-core = "0.1.17"

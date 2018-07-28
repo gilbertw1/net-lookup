@@ -9,6 +9,8 @@ extern crate cidr;
 extern crate serde;
 extern crate serde_json;
 extern crate maxminddb;
+extern crate tokio_core;
+extern crate domain;
 
 use std::env;
 use std::sync::Arc;
@@ -17,6 +19,7 @@ mod asn;
 mod ip;
 mod service;
 mod maxmind;
+mod dns;
 
 use service::LookupService;
 
