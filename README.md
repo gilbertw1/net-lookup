@@ -1,7 +1,7 @@
-ip-asn-lookup-service
-=====================
+ip-lookup-service
+=================
 
-A simple ip-asn lookup service written in rust
+A simple ip lookup service written in rust.
 
 
 Getting Started
