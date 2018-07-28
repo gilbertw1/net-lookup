@@ -57,5 +57,5 @@ fn get_cidr_start_end(cidr: &str) -> (IpAddr, IpAddr) {
 pub struct IpBlock {
     start: IpAddr,
     end: IpAddr,
-    asn: Option<Arc<AutonomousSystemNumber>>,
+    pub asn: Option<Arc<AutonomousSystemNumber>>,
 }

@@ -9,9 +9,12 @@ use hyper::service::{Service, NewService};
 use hyper::rt::Future;
 use hyper;
 use serde_json;
+use maxminddb::geoip2::City;
 
 use ip;
 use ip::IpAsnDatabase;
+use asn::AutonomousSystemNumber;
+use maxmind;
 
 pub struct LookupService { pub database: Arc<IpAsnDatabase> }
 
@@ -41,13 +44,11 @@ impl Service for LookupService {
             (&Method::GET, path) => {
                 let ip_result = path.trim_left_matches('/').parse::<IpAddr>();
                 if ip_result.is_ok() {
-                    let lookup_result = ip::query_database(&self.database, ip_result.unwrap());
-                    if lookup_result.is_some() {
-                        *response.body_mut() = Body::from(serde_json::to_string(&lookup_result.unwrap()).unwrap());
-                    } else {
-                        *response.body_mut() = Body::from("ASN for IP Address was not found.");
-                        *response.status_mut() = StatusCode::NOT_FOUND;
-                    }
+                    let ip = ip_result.unwrap();
+                    let asn_lookup_result = ip::query_database(&self.database, ip);
+                    let city_lookup_result = maxmind::lookup_city(ip);
+                    let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()), geo: city_lookup_result };
+                    *response.body_mut() = Body::from(serde_json::to_string(&lookup_response).unwrap());
                 } else {
                     *response.body_mut() = Body::from("Invalid IP Address.");
                     *response.status_mut() = StatusCode::BAD_REQUEST;
@@ -72,4 +73,10 @@ impl LookupService {
         println!("Running Lookup Service at {}", address);
         hyper::rt::run(server);
     }
+}
+
+#[derive(Serialize, Debug)]
+struct LookupResponse {
+    asn: Option<Arc<AutonomousSystemNumber>>,
+    geo: Option<City>,
 }

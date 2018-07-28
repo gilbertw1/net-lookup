@@ -10,3 +10,5 @@ serde = { version = "1.0.70", features = ["rc"] }
 serde_derive = "1.0.70"
 serde_json = "1.0.24"
 cidr = "0.0.4"
+maxminddb = { git = "https://github.com/gilbertw1/maxminddb-rust" }
+lazy_static = "1.0.2"
