@@ -23,33 +23,37 @@ fn start_dns_resolver_loop() -> mpsc::UnboundedSender<DnsLookupRequest> {
         let resolver_loop =
             req_rx.map_err(|e| println!("error = {:?}", e))
                   .for_each(move |request| {
-                      let future = 
-                          match request {
-                              DnsLookupRequest::ReverseDnsLookupRequest { ip, sender } => {
-                                  lookup_addr(resolv.clone(), ip).then(|result| {
-                                      match result {
-                                          Ok(addrs) => {
-                                              let names = addrs.iter().map(|n| n.to_string().trim_right_matches(".").to_owned()).collect::<Vec<String>>();
-                                              sender.send(ReverseDnsLookupResponse { names: Some(names) });
-                                              Ok(())
-                                          },
-                                          Err(_) => {
-                                              sender.send(ReverseDnsLookupResponse { names: None });
-                                              Ok(())
-                                          },
-                                      }
-                                  })
-                              },
-                          };
+                      let future = handle_dns_lookup_request(request, resolv.clone());
                       core_handle.spawn(future);
                       Ok(())
                   });
 
-        core.run(resolver_loop);
+        core.run(resolver_loop).expect("[dns] Failed to start reactor core loop.");
     });
 
     req_tx
 }
+
+fn handle_dns_lookup_request(request: DnsLookupRequest, resolv: Resolver) -> impl Future<Item=(), Error=()> {
+    match request {
+        DnsLookupRequest::ReverseDnsLookupRequest { ip, sender } => {
+            lookup_addr(resolv.clone(), ip).then(|result| {
+                match result {
+                    Ok(addrs) => {
+                        let names = addrs.iter().map(|n| n.to_string().trim_right_matches(".").to_owned()).collect::<Vec<String>>();
+                        let _unused = sender.send(ReverseDnsLookupResponse { names: Some(names) });
+                        Ok(())
+                    },
+                    Err(_) => {
+                        let _unused = sender.send(ReverseDnsLookupResponse { names: None });
+                        Ok(())
+                    },
+                }
+            })
+        },
+    }
+}
+
 
 #[derive(Clone)]
 pub struct DnsResolverHandle {
@@ -60,14 +64,19 @@ pub enum DnsLookupRequest {
     ReverseDnsLookupRequest { ip: IpAddr, sender: oneshot::Sender<ReverseDnsLookupResponse>}
 }
 
+#[derive(Debug, Clone)]
 pub struct ReverseDnsLookupResponse {
     names: Option<Vec<String>>,
 }
 
 impl DnsResolverHandle {
-    pub fn reverse_dns_lookup(&self, ip: IpAddr) -> impl Future<Item=Option<Vec<String>>, Error=oneshot::Canceled> {
+    pub fn reverse_dns_lookup(&self, ip: IpAddr) -> Option<impl Future<Item=Option<Vec<String>>, Error=oneshot::Canceled>> {
         let (resp_tx, resp_rx) = oneshot::channel::<ReverseDnsLookupResponse>();
-        self.request_sender.unbounded_send(DnsLookupRequest::ReverseDnsLookupRequest { ip: ip, sender: resp_tx });
-        resp_rx.map(|res| res.names)
+        let result = self.request_sender.unbounded_send(DnsLookupRequest::ReverseDnsLookupRequest { ip: ip, sender: resp_tx });
+        if result.is_ok() {
+            Some(resp_rx.map(|res| res.names))
+        } else {
+            None
+        }
     }
 }

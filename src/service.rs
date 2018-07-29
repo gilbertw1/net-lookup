@@ -46,44 +46,15 @@ impl Service for LookupService {
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         match (req.method(), req.uri().path()) {
             (&Method::GET, path) => {
-                let start = Instant::now();
                 let ip_result = path.trim_left_matches('/').parse::<IpAddr>();
                 if ip_result.is_ok() {
-                    let ip = ip_result.unwrap();
-                    
-                    let dns_names_future = self.dns_resolver_handle.reverse_dns_lookup(ip);
-                    let asn_lookup_result = ip::query_database(&self.database, ip).map(|r| r.clone());
-                    let city_lookup_result = maxmind::lookup_city(ip).clone();
-
-                    Box::new(
-                        dns_names_future.then(move |result| {
-                            let reverse_dns = result.unwrap_or(None);
-                            let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()),
-                                                                   geo: city_lookup_result,
-                                                                   reverse_dns: reverse_dns };
-                            let time = Instant::now() - start;
-                            println!("RunTime: {:?}", time);
-                            future::ok(
-                                Response::builder()
-                                    .body(Body::from(serde_json::to_string(&lookup_response).unwrap()))
-                                    .unwrap())
-                        }))
+                    self.handle_ip_lookup(ip_result.unwrap())
                 } else {
-                    Box::new(
-                        future::ok(
-                            Response::builder()
-                                .status(StatusCode::BAD_REQUEST)
-                                .body(Body::from("Invalid IP Address."))
-                                .unwrap()))
+                    Self::create_response(StatusCode::BAD_REQUEST, Body::from("Invalid IP Address."))
                 }
             },
             _ => {
-                Box::new(
-                    future::ok(
-                        Response::builder()
-                            .status(StatusCode::NOT_FOUND)
-                            .body(Body::from(""))
-                            .unwrap()))
+                Self::create_response(StatusCode::NOT_FOUND, Body::from(""))
             },
         }
     }
@@ -105,6 +76,43 @@ impl LookupService {
                              });
         println!("Running Lookup Service at {}", addr);
         tokio::run(server);
+    }
+
+    fn handle_ip_lookup(&self, ip: IpAddr) -> <LookupService as Service>::Future {
+        let start = Instant::now();
+        let dns_names_future = self.dns_resolver_handle.reverse_dns_lookup(ip);
+        let asn_lookup_result = ip::query_database(&self.database, ip).map(|r| r.clone());
+        let city_lookup_result = maxmind::lookup_city(ip).clone();
+
+        if dns_names_future.is_some() {
+            Box::new(
+                dns_names_future.unwrap().then(move |result| {
+                    let reverse_dns = result.unwrap_or(None);
+                    let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()),
+                                                           geo: city_lookup_result,
+                                                           reverse_dns: reverse_dns };
+                    let time = Instant::now() - start;
+                    println!("RunTime: {:?}", time);
+                    future::ok(
+                        Response::builder()
+                            .body(Body::from(serde_json::to_string(&lookup_response).unwrap()))
+                            .unwrap())
+                }))
+        } else {
+            let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()),
+                                                   geo: city_lookup_result,
+                                                   reverse_dns: None };
+            Self::create_response(StatusCode::OK, Body::from(serde_json::to_string(&lookup_response).unwrap()))
+        }
+    }
+
+    fn create_response(code: StatusCode, body: Body) -> <LookupService as Service>::Future {
+        Box::new(
+            future::ok(
+                Response::builder()
+                    .status(code)
+                    .body(body)
+                    .unwrap()))
     }
 }
 
