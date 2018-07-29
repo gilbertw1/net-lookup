@@ -53,7 +53,7 @@ fn get_cidr_start_end(cidr: &str) -> (IpAddr, IpAddr) {
 }
 
 
-#[derive(Eq, PartialEq, Serialize, Deserialize, Debug)]
+#[derive(Eq, PartialEq, Serialize, Deserialize, Debug, Clone)]
 pub struct IpBlock {
     start: IpAddr,
     end: IpAddr,

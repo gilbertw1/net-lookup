@@ -1,25 +1,28 @@
-use std::sync::{Arc, Mutex};
-use std::net::IpAddr;
+use std::sync::Arc;
+use std::net::{IpAddr,SocketAddr};
 
 use std::time::Instant;
 
-use futures::future;
+use futures::{Future,future};
 use futures;
+use futures::*;
 use hyper::{Method, StatusCode};
-use hyper::{Body, Request, Response, Server};
+use hyper::{Body, Request, Response};
 use hyper::service::{Service, NewService};
-use hyper::rt::Future;
+use hyper::server::conn::Http;
 use hyper;
 use serde_json;
 use maxminddb::geoip2::City;
+use tokio;
+use tokio::net::TcpListener;
 
 use ip;
 use ip::IpAsnDatabase;
 use asn::AutonomousSystemNumber;
 use maxmind;
-use dns::DnsLookupHandle;
+use dns::DnsResolverHandle;
 
-pub struct LookupService { pub database: Arc<IpAsnDatabase>, pub dns_lookup_handle: Arc<Mutex<DnsLookupHandle>> }
+pub struct LookupService { pub database: Arc<IpAsnDatabase>, pub dns_resolver_handle: DnsResolverHandle }
 
 impl NewService for LookupService {
     type ReqBody = Body;
@@ -30,7 +33,7 @@ impl NewService for LookupService {
     type InitError = hyper::Error;
 
     fn new_service(&self) -> Self::Future {
-        Box::new(futures::future::ok(Self { database: self.database.clone(), dns_lookup_handle: self.dns_lookup_handle.clone() }))
+        Box::new(futures::future::ok(Self { database: self.database.clone(), dns_resolver_handle: self.dns_resolver_handle.clone() }))
     }
 }
 
@@ -41,44 +44,67 @@ impl Service for LookupService {
     type Future = Box<Future<Item = Response<Body>, Error = Self::Error> + Send>;
 
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
-        let mut response = Response::new(Body::empty());
-
-        let start = Instant::now();
         match (req.method(), req.uri().path()) {
             (&Method::GET, path) => {
+                let start = Instant::now();
                 let ip_result = path.trim_left_matches('/').parse::<IpAddr>();
                 if ip_result.is_ok() {
                     let ip = ip_result.unwrap();
-                    let asn_lookup_result = ip::query_database(&self.database, ip);
-                    let city_lookup_result = maxmind::lookup_city(ip);
-                    let reverse_dns_result = self.dns_lookup_handle.lock().unwrap().reverse_dns_lookup(ip);
-                    let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()), geo: city_lookup_result, reverse_dns: reverse_dns_result };
-                    *response.body_mut() = Body::from(serde_json::to_string(&lookup_response).unwrap());
+                    
+                    let dns_names_future = self.dns_resolver_handle.reverse_dns_lookup(ip);
+                    let asn_lookup_result = ip::query_database(&self.database, ip).map(|r| r.clone());
+                    let city_lookup_result = maxmind::lookup_city(ip).clone();
+
+                    Box::new(
+                        dns_names_future.then(move |result| {
+                            let reverse_dns = result.unwrap_or(None);
+                            let lookup_response = LookupResponse { asn: asn_lookup_result.and_then(|r| r.asn.clone()),
+                                                                   geo: city_lookup_result,
+                                                                   reverse_dns: reverse_dns };
+                            let time = Instant::now() - start;
+                            println!("RunTime: {:?}", time);
+                            future::ok(
+                                Response::builder()
+                                    .body(Body::from(serde_json::to_string(&lookup_response).unwrap()))
+                                    .unwrap())
+                        }))
                 } else {
-                    *response.body_mut() = Body::from("Invalid IP Address.");
-                    *response.status_mut() = StatusCode::BAD_REQUEST;
+                    Box::new(
+                        future::ok(
+                            Response::builder()
+                                .status(StatusCode::BAD_REQUEST)
+                                .body(Body::from("Invalid IP Address."))
+                                .unwrap()))
                 }
             },
             _ => {
-                *response.status_mut() = StatusCode::NOT_FOUND;
+                Box::new(
+                    future::ok(
+                        Response::builder()
+                            .status(StatusCode::NOT_FOUND)
+                            .body(Body::from(""))
+                            .unwrap()))
             },
-        };
-
-        let duration = Instant::now() - start;
-        println!("duration: {:?}", duration);
-        Box::new(future::ok(response))
+        }
     }
 }
 
 impl LookupService {
-    pub fn start(&self) {
-        println!("Starting Lookup Service\n");
-        let address = "127.0.0.1:8080".parse().unwrap();
-        let server = Server::bind(&address)
-            .serve(LookupService { database: self.database.clone(), dns_lookup_handle: self.dns_lookup_handle.clone() })
-            .map_err(|e| eprintln!("server error: {}", e));
-        println!("Running Lookup Service at {}", address);
-        hyper::rt::run(server);
+    pub fn start(database: IpAsnDatabase, resolver_handle: DnsResolverHandle) {
+        let addr = "127.0.0.1:8080".parse::<SocketAddr>().unwrap();
+        let listener = TcpListener::bind(&addr).unwrap();
+        let shared_db = Arc::new(database);
+        let server = listener.incoming()
+                             .map_err(|e| println!("error = {:?}", e))
+                             .for_each(move |stream| {
+                                 let future = Http::new()
+                                     .serve_connection(stream, LookupService { database: shared_db.clone(), dns_resolver_handle: resolver_handle.clone() })
+                                     .map_err(|e| eprintln!("server error: {}", e));
+                                 tokio::spawn(future);
+                                 Ok(())
+                             });
+        println!("Running Lookup Service at {}", addr);
+        tokio::run(server);
     }
 }
 

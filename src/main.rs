@@ -11,9 +11,9 @@ extern crate serde_json;
 extern crate maxminddb;
 extern crate tokio_core;
 extern crate domain;
+extern crate tokio;
 
 use std::env;
-use std::sync::{Arc,Mutex};
 
 mod asn;
 mod ip;
@@ -35,10 +35,9 @@ fn main() {
     println!("loading maxmind city database");
     maxmind::load_city_reader(args[3].clone());
 
-    println!("Starting dns lookup thread");
-    let handle = dns::start_dns_lookup_loop();
+    println!("creating dns resolver");
+    let dns_resolver_handle = dns::create_dns_resolver();
     
     println!("Database Load Complete\n");
-    let service = LookupService { database: Arc::new(ip_map), dns_lookup_handle: Arc::new(Mutex::new(handle)) };
-    service.start();
+    LookupService::start(ip_map, dns_resolver_handle);
 }
