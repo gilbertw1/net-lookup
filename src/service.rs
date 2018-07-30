@@ -22,7 +22,7 @@ use dns::DnsResolverHandle;
 
 pub struct LookupService {
     pub database: Arc<IpAsnDatabase>,
-    pub maxmind_database: MaxmindDatabase,
+    pub maxmind_database: Arc<MaxmindDatabase>,
     pub dns_resolver_handle: DnsResolverHandle
 }
 
@@ -65,16 +65,17 @@ impl Service for LookupService {
 }
 
 impl LookupService {
-    pub fn start(ip_asn_database: IpAsnDatabase, maxmind_database: MaxmindDatabase, resolver_handle: DnsResolverHandle) {
-        let addr = "127.0.0.1:8080".parse::<SocketAddr>().unwrap();
+    pub fn start(host: IpAddr, port: u16, ip_asn_database: IpAsnDatabase, maxmind_database: MaxmindDatabase, resolver_handle: DnsResolverHandle) {
+        let addr = SocketAddr::new(host, port);
         let listener = TcpListener::bind(&addr).unwrap();
-        let atomic_db = Arc::new(ip_asn_database);
+        let atomic_ip_asn_db = Arc::new(ip_asn_database);
+        let atomic_maxmind_db = Arc::new(maxmind_database);
         let server = listener.incoming()
                              .map_err(|e| println!("error = {:?}", e))
                              .for_each(move |stream| {
                                  let future = Http::new()
-                                     .serve_connection(stream, LookupService { database: atomic_db.clone(),
-                                                                               maxmind_database: maxmind_database.clone(),
+                                     .serve_connection(stream, LookupService { database: atomic_ip_asn_db.clone(),
+                                                                               maxmind_database: atomic_maxmind_db.clone(),
                                                                                dns_resolver_handle: resolver_handle.clone() })
                                      .map_err(|e| eprintln!("server error: {}", e));
                                  tokio::spawn(future);
