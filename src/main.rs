@@ -1,7 +1,5 @@
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate lazy_static;
 
 extern crate hyper;
 extern crate futures;
@@ -33,11 +31,11 @@ fn main() {
     let ip_map = ip::load_ip_asn_file(args[2].clone(), &asn_map).unwrap();
 
     println!("loading maxmind city database");
-    maxmind::load_city_reader(args[3].clone());
+    let maxmind_database = maxmind::load_maxmind_database(args[3].clone());
 
     println!("creating dns resolver");
     let dns_resolver_handle = dns::create_dns_resolver();
     
     println!("Database Load Complete\n");
-    LookupService::start(ip_map, dns_resolver_handle);
+    LookupService::start(ip_map, maxmind_database, dns_resolver_handle);
 }

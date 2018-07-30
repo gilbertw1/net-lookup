@@ -1,20 +1,19 @@
-
 use std::net::IpAddr;
-use std::sync::Mutex;
+use std::sync::Arc;
 
 use maxminddb::Reader;
 use maxminddb::geoip2::City;
 
-lazy_static! {
-    static ref CITY_READER: Mutex<MaxmindReader> = Mutex::new(MaxmindReader { reader: None });
+pub fn load_maxmind_database(mm_file: String) -> MaxmindDatabase {
+    let reader = Reader::open(&mm_file).unwrap();
+    MaxmindDatabase { reader: Arc::new(reader) }
 }
 
-struct MaxmindReader { reader: Option<Reader> }
+#[derive(Clone)]
+pub struct MaxmindDatabase { reader: Arc<Reader> }
 
-pub fn load_city_reader(mm_file: String) {
-    CITY_READER.lock().unwrap().reader = Some(Reader::open(&mm_file).unwrap());
-}
-
-pub fn lookup_city(ip: IpAddr) -> Option<City> {
-    CITY_READER.lock().unwrap().reader.as_ref().and_then(|r| r.lookup::<City>(ip).ok())
+impl MaxmindDatabase {
+    pub fn lookup_city(&self, ip: IpAddr) -> Option<City> {
+        self.reader.lookup::<City>(ip).ok()
+    }
 }

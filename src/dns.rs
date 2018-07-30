@@ -36,7 +36,7 @@ fn start_dns_resolver_loop() -> mpsc::UnboundedSender<DnsLookupRequest> {
 
 fn handle_dns_lookup_request(request: DnsLookupRequest, resolv: Resolver) -> impl Future<Item=(), Error=()> {
     match request {
-        DnsLookupRequest::ReverseDnsLookupRequest { ip, sender } => {
+        DnsLookupRequest::ReverseLookup { ip, sender } => {
             lookup_addr(resolv.clone(), ip).then(|result| {
                 match result {
                     Ok(addrs) => {
@@ -60,19 +60,19 @@ pub struct DnsResolverHandle {
     request_sender: mpsc::UnboundedSender<DnsLookupRequest>,
 }
 
-pub enum DnsLookupRequest {
-    ReverseDnsLookupRequest { ip: IpAddr, sender: oneshot::Sender<ReverseDnsLookupResponse>}
+enum DnsLookupRequest {
+    ReverseLookup { ip: IpAddr, sender: oneshot::Sender<ReverseDnsLookupResponse>}
 }
 
 #[derive(Debug, Clone)]
-pub struct ReverseDnsLookupResponse {
+struct ReverseDnsLookupResponse {
     names: Option<Vec<String>>,
 }
 
 impl DnsResolverHandle {
     pub fn reverse_dns_lookup(&self, ip: IpAddr) -> Option<impl Future<Item=Option<Vec<String>>, Error=oneshot::Canceled>> {
         let (resp_tx, resp_rx) = oneshot::channel::<ReverseDnsLookupResponse>();
-        let result = self.request_sender.unbounded_send(DnsLookupRequest::ReverseDnsLookupRequest { ip: ip, sender: resp_tx });
+        let result = self.request_sender.unbounded_send(DnsLookupRequest::ReverseLookup { ip: ip, sender: resp_tx });
         if result.is_ok() {
             Some(resp_rx.map(|res| res.names))
         } else {

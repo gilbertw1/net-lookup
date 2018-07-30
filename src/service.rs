@@ -19,10 +19,14 @@ use tokio::net::TcpListener;
 use ip;
 use ip::IpAsnDatabase;
 use asn::AutonomousSystemNumber;
-use maxmind;
+use maxmind::MaxmindDatabase;
 use dns::DnsResolverHandle;
 
-pub struct LookupService { pub database: Arc<IpAsnDatabase>, pub dns_resolver_handle: DnsResolverHandle }
+pub struct LookupService {
+    pub database: Arc<IpAsnDatabase>,
+    pub maxmind_database: MaxmindDatabase,
+    pub dns_resolver_handle: DnsResolverHandle
+}
 
 impl NewService for LookupService {
     type ReqBody = Body;
@@ -33,7 +37,9 @@ impl NewService for LookupService {
     type InitError = hyper::Error;
 
     fn new_service(&self) -> Self::Future {
-        Box::new(futures::future::ok(Self { database: self.database.clone(), dns_resolver_handle: self.dns_resolver_handle.clone() }))
+        Box::new(futures::future::ok(Self { database: self.database.clone(),
+                                            maxmind_database: self.maxmind_database.clone(),
+                                            dns_resolver_handle: self.dns_resolver_handle.clone() }))
     }
 }
 
@@ -61,7 +67,7 @@ impl Service for LookupService {
 }
 
 impl LookupService {
-    pub fn start(database: IpAsnDatabase, resolver_handle: DnsResolverHandle) {
+    pub fn start(database: IpAsnDatabase, maxmind_database: MaxmindDatabase, resolver_handle: DnsResolverHandle) {
         let addr = "127.0.0.1:8080".parse::<SocketAddr>().unwrap();
         let listener = TcpListener::bind(&addr).unwrap();
         let shared_db = Arc::new(database);
@@ -69,7 +75,9 @@ impl LookupService {
                              .map_err(|e| println!("error = {:?}", e))
                              .for_each(move |stream| {
                                  let future = Http::new()
-                                     .serve_connection(stream, LookupService { database: shared_db.clone(), dns_resolver_handle: resolver_handle.clone() })
+                                     .serve_connection(stream, LookupService { database: shared_db.clone(),
+                                                                               maxmind_database: maxmind_database.clone(),
+                                                                               dns_resolver_handle: resolver_handle.clone() })
                                      .map_err(|e| eprintln!("server error: {}", e));
                                  tokio::spawn(future);
                                  Ok(())
@@ -82,7 +90,7 @@ impl LookupService {
         let start = Instant::now();
         let dns_names_future = self.dns_resolver_handle.reverse_dns_lookup(ip);
         let asn_lookup_result = ip::query_database(&self.database, ip).map(|r| r.clone());
-        let city_lookup_result = maxmind::lookup_city(ip).clone();
+        let city_lookup_result = self.maxmind_database.lookup_city(ip);
 
         if dns_names_future.is_some() {
             Box::new(
