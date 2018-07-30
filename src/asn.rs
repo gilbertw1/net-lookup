@@ -3,7 +3,7 @@ use std::io::{BufRead, BufReader, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub fn load_asn_database(file: String) -> Result<AsnDatabase> {
+pub fn load_asn_database(file: &str) -> Result<AsnDatabase> {
     let file = File::open(file)?;
     let mut asn_map = HashMap::new();
 

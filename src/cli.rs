@@ -1,10 +1,18 @@
 use clap::{Arg, App};
 
 pub fn create_cli_app() -> App<'static,'static> {
-  App::new("lookup-service")
+  App::new("net-lookup")
     .version("0.1.0")
     .author("Bryan G. <bryan@bryan.codes>")
-    .about("A HTTP simple service that can lookup information about IP addresses.")
+    .about("A utility that can be used to lookup information about IP addresses and domains.")
+    .arg(Arg::with_name("query")
+         .value_name("QUERY")
+         .help("Optional query to run if not in daemon mode")
+         .index(1))
+    .arg(Arg::with_name("daemon")
+         .long("daemon")
+         .short("-d")
+         .help("Runs net-lookup in daemon mode."))
     .arg(Arg::with_name("host")
          .long("host")
          .help("Host to bind service to.")
@@ -31,4 +39,8 @@ pub fn create_cli_app() -> App<'static,'static> {
          .help("ip2asn database file.")
          .required(true)
          .takes_value(true))
+    .arg(Arg::with_name("verbose")
+         .short("-v")
+         .long("verbose")
+         .help("Enables verbose logging"))
 }

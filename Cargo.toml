@@ -1,5 +1,5 @@
 [package]
-name = "ip-asn-lookup-service"
+name = "net-lookup"
 version = "0.1.0"
 authors = ["Bryan Gilbert <gilbertw1@gmail.com>"]
 

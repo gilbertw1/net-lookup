@@ -8,7 +8,7 @@ use std::sync::Arc;
 use asn::{AsnDatabase, AutonomousSystemNumber};
 use cidr::AnyIpCidr;
  
-pub fn load_ip_asn_database(file: String, asn_database: &AsnDatabase) -> Result<IpAsnDatabase> {
+pub fn load_ip_asn_database(file: &str, asn_database: &AsnDatabase) -> Result<IpAsnDatabase> {
     let file = File::open(file)?;
     let mut ip_map = BTreeMap::new();
 

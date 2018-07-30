@@ -3,8 +3,8 @@ use std::net::IpAddr;
 use maxminddb::Reader;
 use maxminddb::geoip2::City;
 
-pub fn load_maxmind_database(mm_file: String) -> MaxmindDatabase {
-    let reader = Reader::open(&mm_file).unwrap();
+pub fn load_maxmind_database(mm_file: &str) -> MaxmindDatabase {
+    let reader = Reader::open(mm_file).unwrap();
     MaxmindDatabase { reader: reader }
 }
 
