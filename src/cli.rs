@@ -6,7 +6,6 @@ pub fn create_cli_app() -> App<'static,'static> {
     .author("Bryan G. <bryan@bryan.codes>")
     .about("A HTTP simple service that can lookup information about IP addresses.")
     .arg(Arg::with_name("host")
-         .short("-h")
          .long("host")
          .help("Host to bind service to.")
          .default_value("0.0.0.0")
