@@ -3,9 +3,7 @@ use std::io::{BufRead, BufReader, Result};
 use std::collections::HashMap;
 use std::sync::Arc;
 
-pub type AsnDatabase = HashMap<u32, Arc<AutonomousSystemNumber>>;
-
-pub fn load_asn_file(file: String) -> Result<AsnDatabase> {
+pub fn load_asn_database(file: String) -> Result<AsnDatabase> {
     let file = File::open(file)?;
     let mut asn_map = HashMap::new();
 
@@ -17,7 +15,8 @@ pub fn load_asn_file(file: String) -> Result<AsnDatabase> {
             println!("[ASN] skipping non utf8");
         }
     }
-    Ok(asn_map)
+    
+    Ok(AsnDatabase { asn_map })
 }
 
 fn parse_autonomous_system_number(line: String) -> AutonomousSystemNumber {
@@ -46,4 +45,15 @@ pub struct AutonomousSystemNumber {
     handle: String,
     name: Option<String>,
     country: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct AsnDatabase {
+    asn_map: HashMap<u32, Arc<AutonomousSystemNumber>>,
+}
+
+impl AsnDatabase {
+    pub fn lookup(&self, id: u32) -> Option<Arc<AutonomousSystemNumber>> {
+        self.asn_map.get(&id).map(|r| r.clone())
+    }
 }

@@ -7,15 +7,8 @@ use std::sync::Arc;
 
 use asn::{AsnDatabase, AutonomousSystemNumber};
 use cidr::AnyIpCidr;
-
-pub type IpAsnDatabase = BTreeMap<IpAddr,IpBlock>;
-
-pub fn query_database(ip_map: &IpAsnDatabase, ip: IpAddr) -> Option<&IpBlock> {
-    let range = ip_map.range((Unbounded, Included(ip)));
-    range.last().map(|e| e.1)
-}
-
-pub fn load_ip_asn_file(file: String, asn_map: &AsnDatabase) -> Result<IpAsnDatabase> {
+ 
+pub fn load_ip_asn_database(file: String, asn_database: &AsnDatabase) -> Result<IpAsnDatabase> {
     let file = File::open(file)?;
     let mut ip_map = BTreeMap::new();
 
@@ -23,24 +16,24 @@ pub fn load_ip_asn_file(file: String, asn_map: &AsnDatabase) -> Result<IpAsnData
         if line_res.is_ok() {
             let line = line_res.unwrap();
             if !line.starts_with(';') {
-                let ip_block = parse_ip_block(line, asn_map);
+                let ip_block = parse_ip_block(line, asn_database);
                 ip_map.insert(ip_block.start, ip_block);
             }
         } else {
             println!("[IP] skipping non utf8");
         }
     }
-    Ok(ip_map)
+    Ok(IpAsnDatabase { ip_asn_map: ip_map })
 }
 
-fn parse_ip_block(line: String, asn_map: &AsnDatabase) -> IpBlock {
+fn parse_ip_block(line: String, asn_database: &AsnDatabase) -> IpAsnRecord {
     let split: Vec<&str> = line.split('\t').collect();
     let (start, end) = get_cidr_start_end(split[0]);
 
-    IpBlock {
+    IpAsnRecord {
         start: start,
         end: end,
-        asn: asn_map.get(&split[1].parse::<u32>().unwrap()).map(|r| r.clone()),
+        asn: asn_database.lookup(split[1].parse::<u32>().unwrap()).map(|r| r.clone()),
     }
 }
 
@@ -54,8 +47,20 @@ fn get_cidr_start_end(cidr: &str) -> (IpAddr, IpAddr) {
 
 
 #[derive(Eq, PartialEq, Serialize, Deserialize, Debug, Clone)]
-pub struct IpBlock {
-    start: IpAddr,
-    end: IpAddr,
+pub struct IpAsnRecord {
+    pub start: IpAddr,
+    pub end: IpAddr,
     pub asn: Option<Arc<AutonomousSystemNumber>>,
+}
+
+#[derive(Debug, Clone)]
+pub struct IpAsnDatabase {
+    ip_asn_map: BTreeMap<IpAddr,IpAsnRecord>
+}
+
+impl IpAsnDatabase {
+    pub fn lookup(&self, ip: IpAddr) -> Option<&IpAsnRecord> {
+        let range = self.ip_asn_map.range((Unbounded, Included(ip)));
+        range.last().map(|e| e.1)
+    }
 }

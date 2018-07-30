@@ -25,10 +25,10 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     println!("loading asn database");
-    let asn_map = asn::load_asn_file(args[1].clone()).unwrap();
+    let asn_database = asn::load_asn_database(args[1].clone()).unwrap();
 
     println!("loading ip database");
-    let ip_map = ip::load_ip_asn_file(args[2].clone(), &asn_map).unwrap();
+    let ip_asn_database = ip::load_ip_asn_database(args[2].clone(), &asn_database).unwrap();
 
     println!("loading maxmind city database");
     let maxmind_database = maxmind::load_maxmind_database(args[3].clone());
@@ -37,5 +37,5 @@ fn main() {
     let dns_resolver_handle = dns::create_dns_resolver();
     
     println!("Database Load Complete\n");
-    LookupService::start(ip_map, maxmind_database, dns_resolver_handle);
+    LookupService::start(ip_asn_database, maxmind_database, dns_resolver_handle);
 }

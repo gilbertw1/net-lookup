@@ -1,6 +1,5 @@
 use std::sync::Arc;
 use std::net::{IpAddr,SocketAddr};
-
 use std::time::Instant;
 
 use futures::{Future,future};
@@ -16,7 +15,6 @@ use maxminddb::geoip2::City;
 use tokio;
 use tokio::net::TcpListener;
 
-use ip;
 use ip::IpAsnDatabase;
 use asn::AutonomousSystemNumber;
 use maxmind::MaxmindDatabase;
@@ -67,15 +65,15 @@ impl Service for LookupService {
 }
 
 impl LookupService {
-    pub fn start(database: IpAsnDatabase, maxmind_database: MaxmindDatabase, resolver_handle: DnsResolverHandle) {
+    pub fn start(ip_asn_database: IpAsnDatabase, maxmind_database: MaxmindDatabase, resolver_handle: DnsResolverHandle) {
         let addr = "127.0.0.1:8080".parse::<SocketAddr>().unwrap();
         let listener = TcpListener::bind(&addr).unwrap();
-        let shared_db = Arc::new(database);
+        let atomic_db = Arc::new(ip_asn_database);
         let server = listener.incoming()
                              .map_err(|e| println!("error = {:?}", e))
                              .for_each(move |stream| {
                                  let future = Http::new()
-                                     .serve_connection(stream, LookupService { database: shared_db.clone(),
+                                     .serve_connection(stream, LookupService { database: atomic_db.clone(),
                                                                                maxmind_database: maxmind_database.clone(),
                                                                                dns_resolver_handle: resolver_handle.clone() })
                                      .map_err(|e| eprintln!("server error: {}", e));
@@ -89,7 +87,7 @@ impl LookupService {
     fn handle_ip_lookup(&self, ip: IpAddr) -> <LookupService as Service>::Future {
         let start = Instant::now();
         let dns_names_future = self.dns_resolver_handle.reverse_dns_lookup(ip);
-        let asn_lookup_result = ip::query_database(&self.database, ip).map(|r| r.clone());
+        let asn_lookup_result = self.database.lookup(ip).map(|r| r.clone());
         let city_lookup_result = self.maxmind_database.lookup_city(ip);
 
         if dns_names_future.is_some() {
