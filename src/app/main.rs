@@ -1,31 +1,20 @@
-#[macro_use]
-extern crate serde_derive;
-
-extern crate futures;
-extern crate tokio_core;
-extern crate tokio;
-extern crate hyper;
-extern crate serde;
-extern crate serde_json;
-extern crate cidr;
-extern crate maxminddb;
-extern crate domain;
+extern crate common;
 extern crate clap;
+
+use common::asn;
+use common::ip;
+use common::maxmind;
+use common::dns;
+use common::lookup;
+
+use std::net::IpAddr;
+use common::lookup::LookupHandler;
+use common::service::LookupService;
 
 mod cli;
 mod config;
-mod asn;
-mod ip;
-mod service;
-mod maxmind;
-mod dns;
-mod lookup;
 
-use std::net::IpAddr;
-use futures::future::Future;
 use config::LookupConfig;
-use lookup::LookupHandler;
-use service::LookupService;
 
 fn main() {
     let conf = config::load_config();
@@ -60,8 +49,8 @@ fn execute_query(handler: LookupHandler, query: String) {
     let ip_result = query.parse::<IpAddr>();
     if ip_result.is_ok() {
         let ip = ip_result.unwrap();
-        let result_future = handler.lookup_ip(ip);
-        println!("{:?}", Future::wait(result_future).unwrap());
+        let result = handler.lookup_ip_sync(ip);
+        println!("{:?}", result);
     } else {
         println!("ERROR: IP address is not valid, stopping.");
         std::process::exit(1);

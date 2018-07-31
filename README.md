@@ -1,7 +1,7 @@
-ip-lookup-service
-=================
+net-lookup
+==========
 
-A simple ip lookup service written in rust.
+A simple ip and domain lookup utility written in rust.
 
 
 Getting Started
@@ -15,16 +15,20 @@ Build the server (ensure rust & cargo is installed)
     
     $ ./scripts/build.sh
 
-Run the server
+Run in daemon mode:
 
-    $ ./scripts/run.sh
+    $ ./scripts/run.sh <optional-port>
+
+Perform single lookup:
+
+    $ ./scripts/run-query <ip-address-or-domain>
 
 Usage
 -----
 
-The server can be queried on port 8080
+Start net-lookup in daemon mode:
 
-    $ curl 'http://localhost:8080/<ip-address>'
+    $ curl 'http://localhost:8080/<ip-address-or-domain>'
 
 
 Sample Response Payload

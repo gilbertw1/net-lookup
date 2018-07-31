@@ -51,4 +51,8 @@ impl LookupHandler {
             Either::B(future::ok(lookup_response))
         }
     }
+
+    pub fn lookup_ip_sync(&self, ip: IpAddr) -> LookupResult {
+        Future::wait(self.lookup_ip(ip)).unwrap()
+    }
 }
