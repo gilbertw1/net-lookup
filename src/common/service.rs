@@ -76,7 +76,7 @@ impl LookupService {
             self.handler.lookup_ip(ip).then(move |result | {
                 future::ok(
                     Response::builder()
-                        .body(Body::from(serde_json::to_string(&result).unwrap()))
+                        .body(Body::from(serde_json::to_string(&result.unwrap()).unwrap()))
                         .unwrap())
             }))
     }

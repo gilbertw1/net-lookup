@@ -7,11 +7,11 @@ A simple ip and domain lookup utility written in rust.
 Getting Started
 ---------------
 
-Build the project (ensure rust & cargo is installed)
+Build the project (ensure [rust & cargo](https://rustup.rs/) is installed)
     
     $ cargo build --release
 
-Fetch remote data files (requires pyasn)
+Fetch remote data files (requires [pyasn](https://github.com/hadiasghari/pyasn))
 
     $ ./target/release/net-lookup-updater
 
