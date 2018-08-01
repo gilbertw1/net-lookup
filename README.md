@@ -25,7 +25,7 @@ Run in daemon mode:
 
 Perform single lookup:
 
-    $ ./target/release/net-lookup <ip-address>
+    $ ./target/release/net-lookup <ip-address-or-domain>
 
 Help:
 

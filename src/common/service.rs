@@ -44,7 +44,7 @@ impl Service for LookupService {
                 if ip_result.is_ok() {
                     self.handle_ip_lookup(ip_result.unwrap())
                 } else {
-                    Self::create_response(StatusCode::BAD_REQUEST, Body::from("Invalid IP Address."))
+                    self.handle_domain_lookup(path.trim_left_matches('/').to_owned())
                 }
             },
             _ => {
@@ -74,6 +74,16 @@ impl LookupService {
     fn handle_ip_lookup(&self, ip: IpAddr) -> <LookupService as Service>::Future {
         Box::new(
             self.handler.lookup_ip(ip).then(move |result | {
+                future::ok(
+                    Response::builder()
+                        .body(Body::from(serde_json::to_string(&result.unwrap()).unwrap()))
+                        .unwrap())
+            }))
+    }
+
+    fn handle_domain_lookup(&self, domain: String) -> <LookupService as Service>::Future {
+        Box::new(
+            self.handler.lookup_domain(domain).then(move |result| {
                 future::ok(
                     Response::builder()
                         .body(Body::from(serde_json::to_string(&result.unwrap()).unwrap()))
