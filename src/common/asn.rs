@@ -21,23 +21,22 @@ pub fn load_asn_database(file_path: &Path) -> Result<AsnDatabase> {
 }
 
 fn parse_autonomous_system_number(line: String) -> AutonomousSystemNumber {
-    let id_split: Vec<&str> = line.splitn(2, ' ').collect();
-    let idstr = id_split[0].to_owned();
-    let id = idstr.parse::<u32>().unwrap();
-    let rest = id_split[1];
-    let country_split: Vec<&str> = rest.rsplitn(2, ' ').collect();
-    let country = country_split[0].to_owned();
-    let (handle, name) = parse_handle_and_name(country_split[1]);
-    AutonomousSystemNumber { id: id, handle: handle, name: name, country: country }
-}
+    let first_space_idx = line.find(' ').unwrap();
+    let last_space_idx = line.rfind(' ').unwrap();
+    let sep_idx = line.find(" - ");
 
-fn parse_handle_and_name(value: &str) -> (String, Option<String>) {
-    if value.contains(" - ") {
-        let split: Vec<&str> = value.splitn(2, " - ").collect();
-        (split[0].to_owned(), Some(split[1].trim_right_matches(",").to_owned()))
+    let id = unsafe { line.slice_unchecked(0, first_space_idx).parse::<u32>().unwrap() };
+    let country = unsafe { line.slice_unchecked(last_space_idx+1, line.len()) };
+    let (handle, name) = if sep_idx.is_some() {
+        let hdl = unsafe { line.slice_unchecked(first_space_idx+1, sep_idx.unwrap()) };
+        let nme = unsafe { line.slice_unchecked(sep_idx.unwrap()+3, last_space_idx) };
+        (hdl, Some(nme))
     } else {
-        (value.to_owned(), None)
-    }
+        let hdl = unsafe { line.slice_unchecked(first_space_idx+1, last_space_idx) };
+        (hdl, None)
+    };
+
+    AutonomousSystemNumber { id: id, handle: handle.to_owned(), name: name.map(|n| n.to_owned()), country: country.to_owned() }
 }
 
 #[derive(Hash, Eq, PartialEq, Serialize, Deserialize, Debug, Clone)]
@@ -48,7 +47,7 @@ pub struct AutonomousSystemNumber {
     country: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AsnDatabase {
     asn_map: HashMap<u32, Arc<AutonomousSystemNumber>>,
 }

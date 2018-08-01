@@ -28,24 +28,21 @@ pub fn load_ip_asn_database(file_path: &Path, asn_database: &AsnDatabase) -> Res
 }
 
 fn parse_ip_block(line: String, asn_database: &AsnDatabase) -> IpAsnRecord {
-    let split: Vec<&str> = line.split('\t').collect();
-    let (start, end) = get_cidr_start_end(split[0]);
+    let cidr_slash_idx = line.find('/').unwrap();
+    let tab_idx = line.find('\t').unwrap();
+
+    let cidr_addr = unsafe { line.slice_unchecked(0, cidr_slash_idx) };
+    let cidr_len = unsafe { line.slice_unchecked(cidr_slash_idx+1, tab_idx).parse::<u8>().unwrap() };
+    let cidr = AnyIpCidr::new(cidr_addr.parse::<IpAddr>().unwrap(), cidr_len).unwrap();
+
+    let asn_id = unsafe { line.slice_unchecked(tab_idx+1, line.len()).parse::<u32>().unwrap() };
 
     IpAsnRecord {
-        start: start,
-        end: end,
-        asn: asn_database.lookup(split[1].parse::<u32>().unwrap()).map(|r| r.clone()),
+        start: cidr.first_address().unwrap(),
+        end: cidr.last_address().unwrap(),
+        asn: asn_database.lookup(asn_id).map(|r| r.clone()),
     }
 }
-
-fn get_cidr_start_end(cidr: &str) -> (IpAddr, IpAddr) {
-    let split: Vec<&str> = cidr.split('/').collect();
-    let addr = split[0].parse::<IpAddr>().unwrap();
-    let len = split[1].parse::<u8>().unwrap();
-    let cidr = AnyIpCidr::new(addr, len).unwrap();
-    (cidr.first_address().unwrap(), cidr.last_address().unwrap())
-}
-
 
 #[derive(Eq, PartialEq, Serialize, Deserialize, Debug, Clone)]
 pub struct IpAsnRecord {

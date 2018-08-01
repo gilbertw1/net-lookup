@@ -19,7 +19,4 @@ pub fn create_cli_app() -> App<'static,'static> {
     .arg(Arg::with_name("exclude-maxmind")
          .long("exclude-maxmind")
          .help("Exclude maxmind database from update process."))
-    .arg(Arg::with_name("skip-optimize")
-         .long("skip-optimize")
-         .help("Skip generating optimized ip-asn database."))
 }

@@ -11,7 +11,7 @@ serde_derive = "1.0.70"
 serde_json = "1.0.24"
 cidr = { version = "0.0.4", features = ["serde"] }
 maxminddb = { git = "https://github.com/gilbertw1/maxminddb-rust" }
-domain = "0.2"
+domain = { git = "https://github.com/gilbertw1/domain", branch="series-0.2"}
 tokio-core = "0.1.17"
 tokio = "0.1.7"
 clap = "2.32.0"
@@ -19,6 +19,7 @@ reqwest = "0.8.6"
 libc = "0.2.42"
 glob = "0.2"
 tempdir = "0.3.7"
+bincode = "1.0.1"
 
 [[bin]]
 name = "net-lookup"

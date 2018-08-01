@@ -16,6 +16,7 @@ use std::process::{Command, Stdio};
 use std::os::unix::io::{FromRawFd, IntoRawFd};
 use glob::glob;
 use tempdir::TempDir;
+
 use common::files;
 use config::UpdaterConfig;
 
@@ -32,17 +33,17 @@ fn main() {
 
     if !conf.exclude_asn {
         println!("Downloading and cleaning asn file...");
-        download_and_clean_asn_file(asn_target_file);
+        download_and_clean_asn_file(&asn_target_file);
     }
 
     if !conf.exclude_ip2asn {
         println!("Creating ip2asn file...");
-        create_ip2asn_file(ip2asn_target_file);
+        create_ip2asn_file(&ip2asn_target_file);
     }
 
     if !conf.exclude_maxmind {
         println!("Downloading maxmind city database...");
-        download_maxmind_city_database(maxmind_target_file);
+        download_maxmind_city_database(&maxmind_target_file);
     }
 
     working_dir.close().unwrap();
@@ -55,7 +56,7 @@ fn create_target_path(conf: &UpdaterConfig) -> PathBuf {
     fs::canonicalize(raw_target_dir_path).unwrap()
 }
 
-fn download_and_clean_asn_file(target_file: PathBuf) {
+fn download_and_clean_asn_file(target_file: &Path) {
     let dirty_file_path = Path::new("asn-dirty.txt");
     let mut dirty_file = File::create(&dirty_file_path).unwrap();
     reqwest::get("https://ftp.ripe.net/ripe/asnames/asn.txt").unwrap().copy_to(&mut dirty_file).unwrap();
@@ -72,7 +73,7 @@ fn download_and_clean_asn_file(target_file: PathBuf) {
     cmd.wait().unwrap();
 }
 
-fn create_ip2asn_file(target_file: PathBuf) {
+fn create_ip2asn_file(target_file: &Path) {
     Command::new("pyasn_util_download.py")
         .args(&["-46"])
         .output()
@@ -84,7 +85,7 @@ fn create_ip2asn_file(target_file: PathBuf) {
         .unwrap();
 }
 
-fn download_maxmind_city_database(target_file: PathBuf) {
+fn download_maxmind_city_database(target_file: &Path) {
     let maxmind_archive_path = Path::new("maxmind-geolite-city.tar.gz");
     let mut maxmind_archive_file = File::create(&maxmind_archive_path).unwrap();
     reqwest::get("http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz").unwrap().copy_to(&mut maxmind_archive_file).unwrap();

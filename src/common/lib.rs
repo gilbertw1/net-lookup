@@ -10,6 +10,7 @@ extern crate serde_json;
 extern crate cidr;
 extern crate maxminddb;
 extern crate domain;
+extern crate bincode;
 
 pub mod asn;
 pub mod ip;
