@@ -7,26 +7,31 @@ A simple ip and domain lookup utility written in rust.
 Getting Started
 ---------------
 
+Build the project (ensure rust & cargo is installed)
+    
+    $ cargo build --release
+
 Fetch remote data files (requires pyasn)
 
-    $ ./scripts/fetch-data-files.sh
+    $ ./target/release/net-lookup-updater
 
-Build the server (ensure rust & cargo is installed)
-    
-    $ ./scripts/build.sh
-
-Run in daemon mode:
-
-    $ ./scripts/run.sh <optional-port>
-
-Perform single lookup:
-
-    $ ./scripts/run-query <ip-address-or-domain>
 
 Usage
 -----
 
-Start net-lookup in daemon mode:
+Run in daemon mode:
+
+    $ ./target/release/net-lookup -d -p 9000
+
+Perform single lookup:
+
+    $ ./target/release/net-lookup <ip-address>
+
+Help:
+
+    $ ./target/release/net-lookup -h
+
+Run http query (running in daemon mode)
 
     $ curl 'http://localhost:8080/<ip-address-or-domain>'
 

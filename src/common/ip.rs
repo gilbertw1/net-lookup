@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs::File;
+use std::path::Path;
 use std::io::{BufRead, BufReader, Result};
 use std::collections::Bound::{Included, Unbounded};
 use std::net::IpAddr;
@@ -8,8 +9,8 @@ use std::sync::Arc;
 use asn::{AsnDatabase, AutonomousSystemNumber};
 use cidr::AnyIpCidr;
  
-pub fn load_ip_asn_database(file: &str, asn_database: &AsnDatabase) -> Result<IpAsnDatabase> {
-    let file = File::open(file)?;
+pub fn load_ip_asn_database(file_path: &Path, asn_database: &AsnDatabase) -> Result<IpAsnDatabase> {
+    let file = File::open(file_path)?;
     let mut ip_map = BTreeMap::new();
 
     for line_res in BufReader::new(file).lines() {

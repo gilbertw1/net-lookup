@@ -17,3 +17,4 @@ pub mod service;
 pub mod maxmind;
 pub mod dns;
 pub mod lookup;
+pub mod files;
