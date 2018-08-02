@@ -73,7 +73,7 @@ impl LookupService {
 
     fn handle_ip_lookup(&self, ip: IpAddr) -> <LookupService as Service>::Future {
         Box::new(
-            self.handler.lookup_ip(ip).then(move |result | {
+            self.handler.lookup_ip(ip).then(|result| {
                 future::ok(
                     Response::builder()
                         .body(Body::from(serde_json::to_string(&result.unwrap()).unwrap()))
@@ -81,7 +81,7 @@ impl LookupService {
             }))
     }
 
-    fn handle_domain_lookup(&self, domain: String) -> <LookupService as Service>::Future {
+    fn handle_domain_lookup(&self, domain: String) -> <LookupService as Service>::Future {        
         Box::new(
             self.handler.lookup_domain(domain).then(move |result| {
                 future::ok(

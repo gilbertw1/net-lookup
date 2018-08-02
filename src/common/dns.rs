@@ -56,8 +56,8 @@ fn handle_dns_lookup_request(request: DnsLookupRequest, resolv: Resolver) -> imp
         },
         DnsLookupRequest::ReverseLookup { ip, sender } => {
             Either::B(
-                create_reverse_ip_lookup_future(resolv.clone(), ip).then(|names| {
-                    let _result = sender.send(ReverseDnsLookupResponse { names: names.unwrap() });
+                create_reverse_ip_lookup_future(resolv.clone(), ip).then(move |names| {
+                    let _result = sender.send(ReverseDnsLookupResponse { ip: ip, names: names.unwrap() });
                     Ok(())
                 }))
         },
@@ -248,18 +248,19 @@ enum DnsLookupRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReverseDnsLookupResponse {
+    ip: IpAddr,
     names: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsLookupResponse {
-    a: Vec<Ipv4Addr>,
-    aaaa: Vec<Ipv6Addr>,
-    cname: Vec<String>,
-    ns: Vec<String>,
-    mx: Vec<DnsLookupResponseMx>,
-    txt: Vec<String>,
-    soa: Option<DnsLookupResponseSoa>,
+    pub a: Vec<Ipv4Addr>,
+    pub aaaa: Vec<Ipv6Addr>,
+    pub cname: Vec<String>,
+    pub ns: Vec<String>,
+    pub mx: Vec<DnsLookupResponseMx>,
+    pub txt: Vec<String>,
+    pub soa: Option<DnsLookupResponseSoa>,
 }
 
 impl DnsLookupResponse {
@@ -278,19 +279,19 @@ impl DnsLookupResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsLookupResponseSoa {
-    mname: String,
-    rname: String,
-    serial: u32,
-    refresh: u32,
-    retry: u32,
-    expire: u32,
-    minimum: u32,
+    pub mname: String,
+    pub rname: String,
+    pub serial: u32,
+    pub refresh: u32,
+    pub retry: u32,
+    pub expire: u32,
+    pub minimum: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DnsLookupResponseMx {
-    preference: u16,
-    exchange: String,
+    pub preference: u16,
+    pub exchange: String,
 }
 
 impl DnsResolverHandle {

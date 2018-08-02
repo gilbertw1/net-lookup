@@ -9,7 +9,6 @@ use common::dns;
 use common::lookup;
 
 use std::net::IpAddr;
-use std::time::Instant;
 use common::lookup::LookupHandler;
 use common::service::LookupService;
 
@@ -22,14 +21,10 @@ fn main() {
     let conf = config::load_config();
 
     vlog(&conf, "loading asn database");
-    let asn_start = Instant::now();
     let asn_database = asn::load_asn_database(&conf.asn_database_file).unwrap();
-    println!("Asn Load Time: {:?}", Instant::now() - asn_start);
 
     vlog(&conf, "loading ip database");
-    let ip_start = Instant::now();
     let ip_asn_database = ip::load_ip_asn_database(&conf.ip_asn_database_file, &asn_database).unwrap();
-    println!("Ip Load Time: {:?}", Instant::now() - ip_start);
 
     vlog(&conf, "loading maxmind city database");
     let maxmind_database = maxmind::load_maxmind_database(&conf.maxmind_city_database_file);
