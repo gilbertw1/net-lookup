@@ -1,4 +1,4 @@
-use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+use std::net::{IpAddr, Ipv4Addr, Ipv6Addr, SocketAddr};
 use std::thread;
 use std::str;
 
@@ -8,24 +8,26 @@ use futures::sync::mpsc;
 use futures::future::Either;
 use futures::future;
 use domain::resolv::Resolver;
+use domain::resolv::conf::ServerConf;
+use domain::resolv::conf::ResolvConf;
 use domain::resolv::lookup::lookup_addr;
 use domain::iana::{Rtype,Class};
 use domain::bits::{DNameBuf, ParsedDName};
 use domain::rdata;
 use tokio_core::reactor::Core;
 
-pub fn create_dns_resolver() -> DnsResolverHandle {
-    let request_sender = start_dns_resolver_loop();
+pub fn create_dns_resolver(resolver_host: Option<IpAddr>, resolver_port: u16) -> DnsResolverHandle {
+    let request_sender = start_dns_resolver_loop(resolver_host, resolver_port);
     DnsResolverHandle { request_sender }
 }
 
-fn start_dns_resolver_loop() -> mpsc::UnboundedSender<DnsLookupRequest> {
+fn start_dns_resolver_loop(resolver_host: Option<IpAddr>, resolver_port: u16) -> mpsc::UnboundedSender<DnsLookupRequest> {
     let (req_tx, req_rx) = mpsc::unbounded::<DnsLookupRequest>();
 
     thread::spawn(move || {
         let mut core = Core::new().unwrap();
         let core_handle = core.handle();
-        let resolv = Resolver::new(&core.handle());        
+        let resolv = create_resolver(&core, resolver_host, resolver_port);
         let resolver_loop =
             req_rx.map_err(|e| println!("error = {:?}", e))
                   .for_each(move |request| {
@@ -38,6 +40,18 @@ fn start_dns_resolver_loop() -> mpsc::UnboundedSender<DnsLookupRequest> {
     });
 
     req_tx
+}
+
+fn create_resolver(core: &Core, resolver_host: Option<IpAddr>, resolver_port: u16) -> Resolver {
+    match resolver_host {
+        Some(addr) => {
+            let server_conf = ServerConf::new(SocketAddr::new(addr, resolver_port));
+            let mut resolv_conf = ResolvConf::new();
+            resolv_conf.servers = vec![server_conf];
+            Resolver::from_conf(&core.handle(), resolv_conf)
+        },
+        None => Resolver::new(&core.handle()),
+    }
 }
 
 fn handle_dns_lookup_request(request: DnsLookupRequest, resolv: Resolver) -> impl Future<Item=(), Error=()> {

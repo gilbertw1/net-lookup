@@ -12,6 +12,8 @@ pub fn load_config() -> LookupConfig {
     LookupConfig {
         host: get_string_value(&matches, "host").unwrap_or("0.0.0.0".to_owned()).parse::<IpAddr>().unwrap(),
         port: get_value::<u16>(&matches, "port").unwrap_or(8080),
+        resolver_host: get_string_value(&matches, "resolver-host").map(|s| s.parse::<IpAddr>().unwrap()),
+        resolver_port: get_value::<u16>(&matches, "resolver-port").unwrap_or(53),
         maxmind_city_database_file: get_file_path_or(&matches, "maxmind-city-database", files::get_default_maxmind_path()),
         asn_database_file: get_file_path_or(&matches, "asn-database", files::get_default_asn_path()),
         ip_asn_database_file: get_file_path_or(&matches, "ip2asn-database", files::get_default_ip2asn_path()),
@@ -38,6 +40,8 @@ fn get_value<T: FromStr>(matches: &ArgMatches, key: &str) -> Result<T, T::Err> {
 pub struct LookupConfig {
     pub host: IpAddr,
     pub port: u16,
+    pub resolver_host: Option<IpAddr>,
+    pub resolver_port: u16,
     pub maxmind_city_database_file: PathBuf,
     pub asn_database_file: PathBuf,
     pub ip_asn_database_file: PathBuf,

@@ -41,6 +41,7 @@ Sample Response Payload
 
 ```json
 {
+  "ip": "89.242.204.127",
   "asn": {
     "id": 13285,
     "handle": "OPALTELECOM-AS TalkTalk Communications Limited,",
