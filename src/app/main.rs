@@ -30,7 +30,7 @@ fn main() {
     let maxmind_database = maxmind::load_maxmind_database(&conf.maxmind_city_database_file);
 
     vlog(&conf, "Creating dns resolver");
-    let dns_resolver_handle = dns::create_dns_resolver(conf.resolver_host, conf.resolver_port);
+    let dns_resolver_handle = dns::create_dns_resolver_handle(conf.resolver_host, conf.resolver_port);
 
     vlog(&conf, "Creating lookup handler");
     let lookup_handler = lookup::create_lookup_handler(ip_asn_database, maxmind_database, dns_resolver_handle);
