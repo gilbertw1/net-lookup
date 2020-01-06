@@ -27,7 +27,7 @@ fn parse_autonomous_system_number(line: String) -> AutonomousSystemNumber {
 
     let id = unsafe { line.slice_unchecked(0, first_space_idx).parse::<u32>().unwrap() };
     let country = unsafe { line.slice_unchecked(last_space_idx+1, line.len()) };
-    let (handle, name) = if sep_idx.is_some() {
+    let (handle, name) = if sep_idx.is_some() && sep_idx.unwrap() > first_space_idx {
         let hdl = unsafe { line.slice_unchecked(first_space_idx+1, sep_idx.unwrap()) };
         let nme = unsafe { line.slice_unchecked(sep_idx.unwrap()+3, last_space_idx) };
         (hdl, Some(nme))
