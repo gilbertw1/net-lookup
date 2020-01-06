@@ -1,4 +1,4 @@
-use std::env;
+use dirs;
 use std::path::{Path, PathBuf};
 
 static DEFAULT_ASN_FILE_NAME: &'static str = "asn.dat";
@@ -7,7 +7,7 @@ static DEFAULT_ENCODED_IP2ASN_FILE_NAME: &'static str = "ip2asn-encoded.dat";
 static DEFAULT_MAXMIND_FILE_NAME: &'static str = "maxmind-geolite2-city.mmdb";
 
 pub fn get_default_directory() -> PathBuf {
-    env::home_dir().unwrap().join(".local/share/net-lookup")
+    dirs::home_dir().unwrap().join(".local/share/net-lookup")
 }
 
 pub fn get_asn_path(directory: &Path) -> PathBuf {

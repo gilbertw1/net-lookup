@@ -4,6 +4,7 @@ extern crate reqwest;
 extern crate libc;
 extern crate glob;
 extern crate tempdir;
+extern crate dirs;
 
 mod cli;
 mod config;
@@ -88,7 +89,7 @@ fn create_ip2asn_file(target_file: &Path) {
 fn download_maxmind_city_database(target_file: &Path) {
     let maxmind_archive_path = Path::new("maxmind-geolite-city.tar.gz");
     let mut maxmind_archive_file = File::create(&maxmind_archive_path).unwrap();
-    reqwest::get("http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz").unwrap().copy_to(&mut maxmind_archive_file).unwrap();
+    reqwest::get("https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=...&suffix=tar.gz").unwrap().copy_to(&mut maxmind_archive_file).unwrap();
     Command::new("tar")
         .args(&["xzf", &maxmind_archive_path.to_string_lossy()])
         .output()

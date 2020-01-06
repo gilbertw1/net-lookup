@@ -11,6 +11,7 @@ extern crate cidr;
 extern crate maxminddb;
 extern crate domain;
 extern crate bincode;
+extern crate dirs;
 
 pub mod asn;
 pub mod ip;

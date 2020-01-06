@@ -31,11 +31,11 @@ fn parse_ip_block(line: String, asn_database: &AsnDatabase) -> IpAsnRecord {
     let cidr_slash_idx = line.find('/').unwrap();
     let tab_idx = line.find('\t').unwrap();
 
-    let cidr_addr = unsafe { line.slice_unchecked(0, cidr_slash_idx) };
-    let cidr_len = unsafe { line.slice_unchecked(cidr_slash_idx+1, tab_idx).parse::<u8>().unwrap() };
+    let cidr_addr = unsafe { line.get_unchecked(0..cidr_slash_idx) };
+    let cidr_len = unsafe { line.get_unchecked(cidr_slash_idx+1..tab_idx).parse::<u8>().unwrap() };
     let cidr = AnyIpCidr::new(cidr_addr.parse::<IpAddr>().unwrap(), cidr_len).unwrap();
 
-    let asn_id = unsafe { line.slice_unchecked(tab_idx+1, line.len()).parse::<u32>().unwrap() };
+    let asn_id = unsafe { line.get_unchecked(tab_idx+1..line.len()).parse::<u32>().unwrap() };
 
     IpAsnRecord {
         start: cidr.first_address().unwrap(),

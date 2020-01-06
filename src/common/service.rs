@@ -40,11 +40,11 @@ impl Service for LookupService {
     fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
         match (req.method(), req.uri().path()) {
             (&Method::GET, path) => {
-                let ip_result = path.trim_left_matches('/').parse::<IpAddr>();
+                let ip_result = path.trim_start_matches('/').parse::<IpAddr>();
                 if ip_result.is_ok() {
                     self.handle_ip_lookup(ip_result.unwrap())
                 } else {
-                    self.handle_domain_lookup(path.trim_left_matches('/').to_owned())
+                    self.handle_domain_lookup(path.trim_start_matches('/').to_owned())
                 }
             },
             _ => {
