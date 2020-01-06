@@ -8,7 +8,7 @@ pub fn create_cli_app() -> App<'static,'static> {
     .arg(Arg::with_name("target-directory")
          .long("target-directory")
          .value_name("DIR")
-         .help("Target directory to download files to")
+         .help("Target directory to download files to.")
          .takes_value(true))
     .arg(Arg::with_name("exclude-asn")
          .long("exclude-asn")
@@ -19,4 +19,9 @@ pub fn create_cli_app() -> App<'static,'static> {
     .arg(Arg::with_name("exclude-maxmind")
          .long("exclude-maxmind")
          .help("Exclude maxmind database from update process."))
+    .arg(Arg::with_name("maxmind-key")
+         .long("maxmind-key")
+         .value_name("KEY")
+         .help("Key used to fetch maxmind data files.")
+         .takes_value(true))
 }

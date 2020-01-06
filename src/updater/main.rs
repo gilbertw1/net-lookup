@@ -32,6 +32,11 @@ fn main() {
 
     env::set_current_dir(working_dir.path()).unwrap();
 
+    if !conf.exclude_maxmind && conf.maxmind_key.is_none() {
+        println!("ERROR: No maxmind key is defined. Either exclude maxmind or define a 'maxmind-key'.");
+        std::process::exit(1);
+    }
+
     if !conf.exclude_asn {
         println!("Downloading and cleaning asn file...");
         download_and_clean_asn_file(&asn_target_file);
@@ -42,9 +47,9 @@ fn main() {
         create_ip2asn_file(&ip2asn_target_file);
     }
 
-    if !conf.exclude_maxmind {
+    if !conf.exclude_maxmind && conf.maxmind_key.is_some() {
         println!("Downloading maxmind city database...");
-        download_maxmind_city_database(&maxmind_target_file);
+        download_maxmind_city_database(&maxmind_target_file, conf.maxmind_key.unwrap());
     }
 
     working_dir.close().unwrap();
@@ -86,10 +91,10 @@ fn create_ip2asn_file(target_file: &Path) {
         .unwrap();
 }
 
-fn download_maxmind_city_database(target_file: &Path) {
+fn download_maxmind_city_database(target_file: &Path, key: String) {
     let maxmind_archive_path = Path::new("maxmind-geolite-city.tar.gz");
     let mut maxmind_archive_file = File::create(&maxmind_archive_path).unwrap();
-    reqwest::get("https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key=...&suffix=tar.gz").unwrap().copy_to(&mut maxmind_archive_file).unwrap();
+    reqwest::get(&format!("https://download.maxmind.com/app/geoip_download?edition_id=GeoLite2-City&license_key={}&suffix=tar.gz", key)).unwrap().copy_to(&mut maxmind_archive_file).unwrap();
     Command::new("tar")
         .args(&["xzf", &maxmind_archive_path.to_string_lossy()])
         .output()
