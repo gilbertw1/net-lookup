@@ -1,14 +1,14 @@
 use std::collections::BTreeMap;
-use std::fs::File;
-use std::path::Path;
-use std::io::{BufRead, BufReader, Result};
 use std::collections::Bound::{Included, Unbounded};
+use std::fs::File;
+use std::io::{BufRead, BufReader, Result};
 use std::net::IpAddr;
+use std::path::Path;
 use std::sync::Arc;
 
-use asn::{AsnDatabase, AutonomousSystemNumber};
+use crate::asn::{AsnDatabase, AutonomousSystemNumber};
 use cidr::AnyIpCidr;
- 
+
 pub fn load_ip_asn_database(file_path: &Path, asn_database: &AsnDatabase) -> Result<IpAsnDatabase> {
     let file = File::open(file_path)?;
     let mut ip_map = BTreeMap::new();
@@ -32,10 +32,18 @@ fn parse_ip_block(line: String, asn_database: &AsnDatabase) -> IpAsnRecord {
     let tab_idx = line.find('\t').unwrap();
 
     let cidr_addr = unsafe { line.get_unchecked(0..cidr_slash_idx) };
-    let cidr_len = unsafe { line.get_unchecked(cidr_slash_idx+1..tab_idx).parse::<u8>().unwrap() };
+    let cidr_len = unsafe {
+        line.get_unchecked(cidr_slash_idx + 1..tab_idx)
+            .parse::<u8>()
+            .unwrap()
+    };
     let cidr = AnyIpCidr::new(cidr_addr.parse::<IpAddr>().unwrap(), cidr_len).unwrap();
 
-    let asn_id = unsafe { line.get_unchecked(tab_idx+1..line.len()).parse::<u32>().unwrap() };
+    let asn_id = unsafe {
+        line.get_unchecked(tab_idx + 1..line.len())
+            .parse::<u32>()
+            .unwrap()
+    };
 
     IpAsnRecord {
         start: cidr.first_address().unwrap(),
@@ -53,7 +61,7 @@ pub struct IpAsnRecord {
 
 #[derive(Debug, Clone)]
 pub struct IpAsnDatabase {
-    ip_asn_map: BTreeMap<IpAddr,IpAsnRecord>
+    ip_asn_map: BTreeMap<IpAddr, IpAsnRecord>,
 }
 
 impl IpAsnDatabase {

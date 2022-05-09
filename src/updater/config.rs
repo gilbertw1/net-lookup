@@ -1,18 +1,18 @@
 use std::path::PathBuf;
 
+use crate::cli;
 use clap::ArgMatches;
-use cli;
 
 pub fn load_config() -> UpdaterConfig {
     let cli_app = cli::create_cli_app();
     let matches = cli_app.get_matches();
     UpdaterConfig {
         target_directory: get_string_value(&matches, "target-directory").map(|d| PathBuf::from(d)),
-        exclude_asn: matches.is_present("exclude_asn"),
-        exclude_ip2asn: matches.is_present("exclude_ip2asn"),
-        exclude_maxmind: matches.is_present("exclude_maxmind"),
+        exclude_asn: matches.is_present("exclude-asn"),
+        exclude_ip2asn: matches.is_present("exclude-ip2asn"),
+        exclude_maxmind: matches.is_present("exclude-maxmind"),
         maxmind_key: get_string_value(&matches, "maxmind-key"),
-        skip_optimize: matches.is_present("skip_optimize"),
+        skip_optimize: matches.is_present("skip-optimize"),
     }
 }
 

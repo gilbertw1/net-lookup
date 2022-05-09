@@ -2,25 +2,26 @@
 name = "net-lookup"
 version = "0.1.0"
 authors = ["Bryan Gilbert <gilbertw1@gmail.com>"]
+edition = "2021"
 
 [dependencies]
-hyper = "0.12"
-futures = "0.1.23"
-serde = { version = "1.0.70", features = ["rc"] }
-serde_derive = "1.0.70"
-serde_json = "1.0.24"
-cidr = { version = "0.0.4", features = ["serde"] }
-maxminddb = { git = "https://github.com/gilbertw1/maxminddb-rust" }
-domain = "0.2"
-tokio-core = "0.1.17"
-tokio = "0.1.16"
+hyper = { version = "0.14.18", features = ["full"] }
+futures = "0.3.21"
+serde = { version = "1.0.137", features = ["rc"] }
+serde_derive = "1.0.137"
+serde_json = "1.0.81"
+cidr = { version = "0.2.1", features = ["serde"] }
+maxminddb = { path = "../maxminddb-rust" }
+domain = { git = "https://github.com/NLnetLabs/domain", features = ["resolv"] }
+tokio-core = "0.1.18"
+tokio = { version = "1.18.2", features = ["rt-multi-thread"] }
 clap = "2.32.0"
-reqwest = "0.9.11"
+reqwest = {version = "0.11.10", features = ["blocking"] }
 libc = "0.2.42"
-glob = "0.2"
+glob = "0.3"
 tempdir = "0.3.7"
-bincode = "1.0.1"
-dirs = "2.0.2"
+bincode = "1.3.3"
+dirs = "4.0.0"
 
 [[bin]]
 name = "net-lookup"
